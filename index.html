@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Apoclypse Panic Button</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <style>
+    #page3 {
+      padding:0!important;overflow:hidden;
+      max-width:100vw!important;width:100vw!important;height:100vh!important;
+      border-radius:0!important;border:none!important;
+      background:transparent!important;backdrop-filter:none!important;
+      box-shadow:none!important;position:fixed!important;inset:0!important;
+    }
+    #map{width:100%;height:100%;background:#07080a;}
+
+    /* TOP BAR */
+    .map-overlay{
+      position:fixed;top:0;left:0;right:0;z-index:1000;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:12px 18px;
+      background:linear-gradient(to bottom,rgba(0,0,0,0.92) 55%,transparent);
+      pointer-events:none;font-family:system-ui,sans-serif;
+    }
+    .map-overlay-left{display:flex;flex-direction:column;gap:1px;pointer-events:auto;}
+    .map-scenario-label{font-size:.6rem;text-transform:uppercase;letter-spacing:.22em;color:#ff4b6e;}
+    .map-scenario-title{font-size:.95rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;}
+    .map-btn-back{
+      pointer-events:auto;background:rgba(0,0,0,.7);
+      border:1px solid rgba(255,255,255,.2);color:#fff;
+      padding:6px 14px;border-radius:999px;font-size:.7rem;
+      letter-spacing:.12em;text-transform:uppercase;cursor:pointer;
+      transition:background .2s,box-shadow .2s;
+    }
+    .map-btn-back:hover{background:rgba(255,75,110,.3);box-shadow:0 0 14px rgba(255,75,110,.4);}
+
+    /* BOTTOM BAR */
+    .map-bottom{
+      position:fixed;bottom:0;left:0;right:0;z-index:1000;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:8px 18px 12px;
+      background:linear-gradient(to top,rgba(0,0,0,.88),transparent);
+      pointer-events:none;font-family:system-ui,sans-serif;
+    }
+    .map-hint{font-size:.7rem;color:rgba(255,255,255,.45);letter-spacing:.07em;}
+    .map-hint span{color:#ff869a;}
+    .marker-count{font-size:.68rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase;}
+    .marker-count strong{color:#ff4b6e;}
+
+    /* LEGEND PANEL */
+    #legend{
+      position:fixed;top:58px;right:14px;z-index:1100;
+      background:rgba(5,5,8,.97);border:1px solid rgba(255,255,255,.1);
+      border-radius:16px;padding:0;width:252px;
+      backdrop-filter:blur(18px);font-family:system-ui,sans-serif;
+      box-shadow:0 20px 60px rgba(0,0,0,.9),0 0 1px rgba(255,75,110,.25);
+      transition:opacity .25s,transform .25s;
+      max-height:calc(100vh - 120px);display:flex;flex-direction:column;
+      overflow:hidden;
+    }
+    #legend.collapsed{opacity:0;pointer-events:none;transform:translateY(-6px) scale(.97);}
+
+    .legend-header{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:11px 14px 9px;border-bottom:1px solid rgba(255,255,255,.07);
+      flex-shrink:0;
+    }
+    .legend-header-title{
+      font-size:.62rem;text-transform:uppercase;letter-spacing:.22em;
+      color:#ff4b6e;font-weight:700;display:flex;align-items:center;gap:6px;
+    }
+    .legend-close-btn{
+      cursor:pointer;color:rgba(255,255,255,.3);font-size:15px;
+      line-height:1;transition:color .15s;background:none;border:none;padding:0;
+    }
+    .legend-close-btn:hover{color:#ff4b6e;}
+
+    .legend-body{overflow-y:auto;padding:10px 10px 10px;}
+    .legend-body::-webkit-scrollbar{width:3px;}
+    .legend-body::-webkit-scrollbar-thumb{background:rgba(255,75,110,.3);border-radius:3px;}
+
+    .legend-stat-row{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:6px 10px;background:rgba(255,75,110,.07);
+      border-radius:8px;margin-bottom:8px;
+      border:1px solid rgba(255,75,110,.12);
+    }
+    .legend-stat-label{font-size:.56rem;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.35);}
+    .legend-stat-value{font-size:.82rem;font-weight:700;color:#ff4b6e;}
+
+    .legend-section{margin-bottom:8px;}
+    .legend-section-head{
+      font-size:.54rem;text-transform:uppercase;letter-spacing:.2em;
+      color:rgba(255,255,255,.28);margin-bottom:4px;padding:0 4px;
+    }
+    .legend-row{
+      display:flex;align-items:center;gap:8px;
+      margin-bottom:2px;cursor:pointer;padding:4px 6px;
+      border-radius:8px;transition:background .15s,opacity .18s;user-select:none;
+    }
+    .legend-row:hover{background:rgba(255,255,255,.06);}
+    .legend-row.dimmed{opacity:.25;}
+    .legend-icon{
+      width:28px;height:28px;border-radius:50%;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      font-size:13px;border:1.5px solid rgba(255,255,255,.1);
+    }
+    .legend-label{font-size:.72rem;color:rgba(255,255,255,.82);letter-spacing:.02em;flex:1;line-height:1.2;}
+    .legend-count{font-size:.62rem;color:rgba(255,255,255,.28);min-width:20px;text-align:right;}
+    .legend-count.has{color:#ff869a;font-weight:600;}
+    .legend-divider{height:1px;background:rgba(255,255,255,.06);margin:6px 4px;}
+    .legend-footer{
+      padding:7px 14px 10px;border-top:1px solid rgba(255,255,255,.05);
+      font-size:.56rem;color:rgba(255,255,255,.22);letter-spacing:.06em;line-height:1.6;
+      flex-shrink:0;
+    }
+
+    /* TOGGLE BUTTON */
+    #btnToggleLegend{
+      position:fixed;top:58px;right:14px;z-index:1200;
+      background:rgba(0,0,0,.8);border:1px solid rgba(255,255,255,.18);
+      color:#fff;border-radius:10px;padding:7px 13px;
+      font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;
+      cursor:pointer;font-family:system-ui,sans-serif;
+      transition:background .2s,opacity .2s;display:flex;align-items:center;gap:6px;
+    }
+    #btnToggleLegend:hover{background:rgba(255,75,110,.28);}
+    #btnToggleLegend.open{opacity:0;pointer-events:none;}
+
+    /* PICKER TOOLBAR */
+    #markerTypePicker{
+      position:fixed;bottom:44px;left:50%;transform:translateX(-50%);
+      z-index:1100;display:flex;gap:5px;align-items:center;
+      background:rgba(5,5,8,.92);border:1px solid rgba(255,255,255,.1);
+      border-radius:999px;padding:6px 14px;
+      backdrop-filter:blur(14px);
+      box-shadow:0 8px 32px rgba(0,0,0,.8);
+      font-family:system-ui,sans-serif;
+      overflow-x:auto;max-width:94vw;
+    }
+    #markerTypePicker::-webkit-scrollbar{display:none;}
+    .mtp-label{font-size:.54rem;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.28);margin-right:2px;flex-shrink:0;}
+    .mtp-sep{width:1px;height:22px;background:rgba(255,255,255,.08);margin:0 3px;flex-shrink:0;}
+    .mtp-btn{
+      width:30px;height:30px;border-radius:50%;display:flex;
+      align-items:center;justify-content:center;font-size:13px;cursor:pointer;flex-shrink:0;
+      border:2px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);
+      transition:border-color .15s,background .15s,transform .1s;
+      position:relative;outline:none;
+    }
+    .mtp-btn:hover{background:rgba(255,255,255,.1);transform:scale(1.14);}
+    .mtp-btn.active{border-color:#ff4b6e;background:rgba(255,75,110,.22);box-shadow:0 0 10px rgba(255,75,110,.45);}
+    .mtp-tip{
+      position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+      background:rgba(0,0,0,.92);border:1px solid rgba(255,255,255,.1);border-radius:6px;
+      padding:3px 8px;font-size:.58rem;white-space:nowrap;color:#fff;
+      letter-spacing:.08em;pointer-events:none;opacity:0;transition:opacity .15s;
+    }
+    .mtp-btn:hover .mtp-tip{opacity:1;}
+
+    /* POPUP */
+    .leaflet-popup-content-wrapper{
+      background:rgba(5,5,9,.96)!important;border:1px solid rgba(255,75,110,.28)!important;
+      border-radius:14px!important;color:#f5f5f5!important;
+      box-shadow:0 16px 50px rgba(0,0,0,.9),0 0 28px rgba(255,75,110,.1)!important;
+      backdrop-filter:blur(14px)!important;
+    }
+    .leaflet-popup-tip{background:rgba(5,5,9,.96)!important;}
+    .leaflet-popup-close-button{color:#ff4b6e!important;font-size:15px!important;top:8px!important;right:10px!important;}
+    .popup-inner{padding:4px 2px 4px 0;min-width:200px;}
+    .popup-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+    .popup-icon-big{font-size:26px;line-height:1;}
+    .popup-title-col{display:flex;flex-direction:column;gap:3px;}
+    .popup-type-label{font-size:.55rem;text-transform:uppercase;letter-spacing:.16em;color:rgba(255,255,255,.34);}
+    .popup-name-display{font-size:.88rem;font-weight:700;color:#fff;}
+    .popup-inner input,.popup-inner textarea{
+      background:rgba(255,255,255,.05);border:1px solid rgba(255,75,110,.28);
+      border-radius:8px;color:#fff;padding:5px 9px;font-size:.74rem;
+      width:100%;font-family:system-ui,sans-serif;outline:none;margin-bottom:6px;
+      resize:none;box-sizing:border-box;
+    }
+    .popup-inner input::placeholder,.popup-inner textarea::placeholder{color:rgba(255,255,255,.2);}
+    .popup-inner input:focus,.popup-inner textarea:focus{border-color:#ff4b6e;box-shadow:0 0 8px rgba(255,75,110,.2);}
+    .popup-btn-row{display:flex;gap:6px;}
+    .popup-save-btn{
+      flex:1;background:rgba(255,31,90,.6);border:1px solid rgba(255,75,110,.5);
+      color:#fff;border-radius:8px;padding:5px 10px;font-size:.68rem;
+      font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+      cursor:pointer;font-family:system-ui,sans-serif;transition:background .15s;
+    }
+    .popup-save-btn:hover{background:rgba(255,31,90,.88);}
+    .popup-delete-btn{
+      background:rgba(50,0,0,.55);border:1px solid rgba(255,75,110,.2);
+      color:#ff869a;border-radius:8px;padding:5px 10px;font-size:.68rem;
+      cursor:pointer;font-family:system-ui,sans-serif;transition:background .15s;
+    }
+    .popup-delete-btn:hover{background:rgba(160,0,0,.5);}
+
+    /* LEAFLET CHROME */
+    .leaflet-control-attribution{background:rgba(0,0,0,.5)!important;color:rgba(255,255,255,.2)!important;font-size:8px!important;}
+    .leaflet-control-attribution a{color:rgba(255,255,255,.3)!important;}
+    .leaflet-control-zoom a{background:rgba(0,0,0,.78)!important;color:#fff!important;border-color:rgba(255,255,255,.1)!important;}
+    .leaflet-control-zoom a:hover{background:rgba(255,31,90,.35)!important;}
+
+    /* MARKERS */
+    .you-are-here{width:16px;height:16px;background:#4af;border-radius:50%;border:2px solid #fff;animation:sonar 1.8s ease-out infinite;}
+    @keyframes sonar{0%{box-shadow:0 0 0 0 rgba(68,170,255,.7);}70%{box-shadow:0 0 0 20px rgba(68,170,255,0);}100%{box-shadow:0 0 0 0 rgba(68,170,255,0);}}
+    .res-marker{
+      display:flex;align-items:center;justify-content:center;
+      border-radius:50%;font-size:13px;
+      border:2px solid rgba(255,255,255,.3);
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- PAGE 1 -->
+  <div id="page1" class="page page--active">
+    <div class="page__content">
+      <div class="subtitle">Emergency override</div>
+      <div class="title">Apoclypse</div>
+      <p class="hint">Press only in case of cosmic-level catastrophe.</p>
+      <div class="panic-button-wrap">
+        <div class="glow"></div>
+        <button id="panicBtn" class="panic-button"><span>Apoclypse</span></button>
+      </div>
+      <div id="log" class="log"></div>
+    </div>
+  </div>
+
+  <!-- PAGE 2 -->
+  <div id="page2" class="page">
+    <div class="page__content">
+      <div class="subtitle">Choose your scenario</div>
+      <div class="title">Apoclypse routes</div>
+      <p class="hint">Select how this timeline descends into chaos. (Simulation only. For now.)</p>
+      <div class="scenario-buttons">
+        <div class="scenario-card">
+          <img src="Zombie.png" alt="Zombie outbreak" class="scenario-image"/>
+          <button class="scenario-button" id="btnZombie">Zombie outbreak</button>
+        </div>
+        <div class="scenario-card">
+          <img src="Gemini_Generated_Image_ufmzo0ufmzo0ufmz.png" alt="Nuclear outbreak" class="scenario-image"/>
+          <button class="scenario-button" id="btnNuclear">Nuclear outbreak</button>
+        </div>
+        <div class="scenario-card">
+          <img src="Gemini_Generated_Image_ji2tgmji2tgmji2t.png" alt="Disease outbreak" class="scenario-image"/>
+          <button class="scenario-button" id="btnDisease">Disease outbreak</button>
+        </div>
+      </div>
+      <div id="scenarioLog" class="log"></div>
+    </div>
+  </div>
+
+  <!-- PAGE 3: MAP -->
+  <div id="page3" class="page">
+
+    <div class="map-overlay">
+      <div class="map-overlay-left">
+        <div class="map-scenario-label">Active scenario</div>
+        <div class="map-scenario-title" id="mapScenarioTitle">—</div>
+      </div>
+      <button class="map-btn-back" id="btnBackToScenarios">← Change scenario</button>
+    </div>
+
+    <div id="map"></div>
+
+    <button id="btnToggleLegend">☰ &nbsp;Legend</button>
+
+    <!-- LEGEND PANEL -->
+    <div id="legend" class="collapsed">
+      <div class="legend-header">
+        <div class="legend-header-title">🗺 &nbsp;Map Legend</div>
+        <button class="legend-close-btn" id="btnCloseLegend">✕</button>
+      </div>
+      <div class="legend-body">
+
+        <div class="legend-stat-row">
+          <span class="legend-stat-label">Total markers on map</span>
+          <span class="legend-stat-value" id="statTotal">0</span>
+        </div>
+
+        <!-- SURVIVAL -->
+        <div class="legend-section">
+          <div class="legend-section-head">🧃 Survival Resources</div>
+          <div class="legend-row" data-layer="food">
+            <div class="legend-icon" style="background:rgba(80,200,80,.16);border-color:rgba(80,200,80,.4);">🌾</div>
+            <span class="legend-label">Food Supply</span><span class="legend-count" id="cnt-food"></span>
+          </div>
+          <div class="legend-row" data-layer="water">
+            <div class="legend-icon" style="background:rgba(40,140,255,.16);border-color:rgba(40,140,255,.4);">💧</div>
+            <span class="legend-label">Water Source</span><span class="legend-count" id="cnt-water"></span>
+          </div>
+          <div class="legend-row" data-layer="medical">
+            <div class="legend-icon" style="background:rgba(255,80,80,.16);border-color:rgba(255,80,80,.4);">🏥</div>
+            <span class="legend-label">Medical / Hospital</span><span class="legend-count" id="cnt-medical"></span>
+          </div>
+          <div class="legend-row" data-layer="shelter">
+            <div class="legend-icon" style="background:rgba(255,180,40,.16);border-color:rgba(255,180,40,.4);">🏚️</div>
+            <span class="legend-label">Shelter / Bunker</span><span class="legend-count" id="cnt-shelter"></span>
+          </div>
+          <div class="legend-row" data-layer="medicine">
+            <div class="legend-icon" style="background:rgba(255,100,180,.16);border-color:rgba(255,100,180,.4);">💊</div>
+            <span class="legend-label">Medicine Cache</span><span class="legend-count" id="cnt-medicine"></span>
+          </div>
+        </div>
+
+        <div class="legend-divider"></div>
+
+        <!-- INFRASTRUCTURE -->
+        <div class="legend-section">
+          <div class="legend-section-head">🏗 Infrastructure</div>
+          <div class="legend-row" data-layer="power">
+            <div class="legend-icon" style="background:rgba(255,240,60,.16);border-color:rgba(255,240,60,.4);">⚡</div>
+            <span class="legend-label">Power Grid</span><span class="legend-count" id="cnt-power"></span>
+          </div>
+          <div class="legend-row" data-layer="fuel">
+            <div class="legend-icon" style="background:rgba(255,140,30,.16);border-color:rgba(255,140,30,.4);">⛽</div>
+            <span class="legend-label">Fuel Depot</span><span class="legend-count" id="cnt-fuel"></span>
+          </div>
+          <div class="legend-row" data-layer="comms">
+            <div class="legend-icon" style="background:rgba(160,80,255,.16);border-color:rgba(160,80,255,.4);">📡</div>
+            <span class="legend-label">Comms Tower</span><span class="legend-count" id="cnt-comms"></span>
+          </div>
+          <div class="legend-row" data-layer="transport">
+            <div class="legend-icon" style="background:rgba(80,200,240,.16);border-color:rgba(80,200,240,.4);">🚁</div>
+            <span class="legend-label">Transport / Evac Hub</span><span class="legend-count" id="cnt-transport"></span>
+          </div>
+          <div class="legend-row" data-layer="military">
+            <div class="legend-icon" style="background:rgba(200,160,60,.16);border-color:rgba(200,160,60,.4);">🪖</div>
+            <span class="legend-label">Military Base</span><span class="legend-count" id="cnt-military"></span>
+          </div>
+        </div>
+
+        <div class="legend-divider"></div>
+
+        <!-- HAZARDS -->
+        <div class="legend-section">
+          <div class="legend-section-head">☢ Hazards &amp; Zones</div>
+          <div class="legend-row" data-layer="safe">
+            <div class="legend-icon" style="background:rgba(40,200,100,.16);border-color:rgba(40,200,100,.4);">✅</div>
+            <span class="legend-label">Safe Zone</span><span class="legend-count" id="cnt-safe"></span>
+          </div>
+          <div class="legend-row" data-layer="danger">
+            <div class="legend-icon" style="background:rgba(255,30,30,.2);border-color:rgba(255,30,30,.5);">☠️</div>
+            <span class="legend-label">Danger Zone</span><span class="legend-count" id="cnt-danger"></span>
+          </div>
+          <div class="legend-row" data-layer="radiation">
+            <div class="legend-icon" style="background:rgba(255,220,0,.2);border-color:rgba(255,220,0,.5);">☢️</div>
+            <span class="legend-label">Radiation Zone</span><span class="legend-count" id="cnt-radiation"></span>
+          </div>
+          <div class="legend-row" data-layer="biohazard">
+            <div class="legend-icon" style="background:rgba(180,60,255,.2);border-color:rgba(180,60,255,.5);">☣️</div>
+            <span class="legend-label">Biohazard Zone</span><span class="legend-count" id="cnt-biohazard"></span>
+          </div>
+          <div class="legend-row" data-layer="weapons">
+            <div class="legend-icon" style="background:rgba(200,60,60,.16);border-color:rgba(200,60,60,.4);">🔫</div>
+            <span class="legend-label">Weapons Cache</span><span class="legend-count" id="cnt-weapons"></span>
+          </div>
+        </div>
+
+        <div class="legend-divider"></div>
+
+        <!-- CUSTOM -->
+        <div class="legend-section" style="margin-bottom:0">
+          <div class="legend-section-head">📌 Custom</div>
+          <div class="legend-row" data-layer="unknown">
+            <div class="legend-icon" style="background:rgba(150,150,150,.14);border-color:rgba(150,150,150,.32);">❓</div>
+            <span class="legend-label">Unknown / Custom</span><span class="legend-count" id="cnt-unknown"></span>
+          </div>
+          <div class="legend-row" style="cursor:default;">
+            <div class="legend-icon" style="background:rgba(68,170,255,.16);border-color:rgba(68,170,255,.4);">🔵</div>
+            <span class="legend-label">Your Location</span>
+          </div>
+        </div>
+
+      </div>
+      <div class="legend-footer">
+        Click any row to toggle layer on / off<br>
+        Select marker type below · Click map to place
+      </div>
+    </div>
+
+    <!-- MARKER TYPE PICKER -->
+    <div id="markerTypePicker">
+      <span class="mtp-label">Drop:</span>
+    </div>
+
+    <div class="map-bottom">
+      <div class="map-hint">Pick type above · <span>Tap map</span> to place · <span>Tap marker</span> to edit</div>
+      <div class="marker-count">Placed: <strong id="markerCountDisplay">0</strong></div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ────────────────── DOM ──────────────────
+const panicBtn           = document.getElementById("panicBtn");
+const logEl              = document.getElementById("log");
+const page1              = document.getElementById("page1");
+const page2              = document.getElementById("page2");
+const page3              = document.getElementById("page3");
+const btnZombie          = document.getElementById("btnZombie");
+const btnDisease         = document.getElementById("btnDisease");
+const btnNuclear         = document.getElementById("btnNuclear");
+const btnBackToScenarios = document.getElementById("btnBackToScenarios");
+const mapScenarioTitle   = document.getElementById("mapScenarioTitle");
+const markerCountDisplay = document.getElementById("markerCountDisplay");
+const statTotal          = document.getElementById("statTotal");
+const legendEl           = document.getElementById("legend");
+const btnToggleLegend    = document.getElementById("btnToggleLegend");
+const btnCloseLegend     = document.getElementById("btnCloseLegend");
+const pickerEl           = document.getElementById("markerTypePicker");
+
+// ────────────────── TYPE DEFINITIONS ──────────────────
+const TYPES = [
+  {id:"food",      emoji:"🌾",label:"Food Supply",       bg:"rgba(80,200,80,.88)",   border:"#50c850",glow:"rgba(80,200,80,.7)",  cat:"survival"},
+  {id:"water",     emoji:"💧",label:"Water Source",      bg:"rgba(40,140,255,.88)",  border:"#288cff",glow:"rgba(40,140,255,.7)", cat:"survival"},
+  {id:"medical",   emoji:"🏥",label:"Medical",           bg:"rgba(255,80,80,.88)",   border:"#ff5050",glow:"rgba(255,80,80,.7)",  cat:"survival"},
+  {id:"shelter",   emoji:"🏚️",label:"Shelter",           bg:"rgba(255,180,40,.88)",  border:"#ffb428",glow:"rgba(255,180,40,.7)", cat:"survival"},
+  {id:"medicine",  emoji:"💊",label:"Medicine Cache",    bg:"rgba(255,100,180,.88)", border:"#ff64b4",glow:"rgba(255,100,180,.7)",cat:"survival"},
+  {id:"power",     emoji:"⚡",label:"Power Grid",        bg:"rgba(255,240,60,.9)",   border:"#fff03c",glow:"rgba(255,240,60,.75)",cat:"infra"},
+  {id:"fuel",      emoji:"⛽",label:"Fuel Depot",        bg:"rgba(255,140,30,.88)",  border:"#ff8c1e",glow:"rgba(255,140,30,.7)", cat:"infra"},
+  {id:"comms",     emoji:"📡",label:"Comms Tower",       bg:"rgba(160,80,255,.88)",  border:"#a050ff",glow:"rgba(160,80,255,.7)", cat:"infra"},
+  {id:"transport", emoji:"🚁",label:"Transport Hub",     bg:"rgba(80,200,240,.88)",  border:"#50c8f0",glow:"rgba(80,200,240,.7)", cat:"infra"},
+  {id:"military",  emoji:"🪖",label:"Military Base",     bg:"rgba(200,160,60,.88)",  border:"#c8a03c",glow:"rgba(200,160,60,.7)", cat:"infra"},
+  {id:"safe",      emoji:"✅",label:"Safe Zone",          bg:"rgba(40,200,100,.88)",  border:"#28c864",glow:"rgba(40,200,100,.7)", cat:"hazard"},
+  {id:"danger",    emoji:"☠️",label:"Danger Zone",       bg:"rgba(255,30,30,.92)",   border:"#ff1e1e",glow:"rgba(255,30,30,.8)",  cat:"hazard"},
+  {id:"radiation", emoji:"☢️",label:"Radiation Zone",    bg:"rgba(255,220,0,.9)",    border:"#ffdc00",glow:"rgba(255,220,0,.75)", cat:"hazard"},
+  {id:"biohazard", emoji:"☣️",label:"Biohazard Zone",    bg:"rgba(180,60,255,.9)",   border:"#b43cff",glow:"rgba(180,60,255,.75)",cat:"hazard"},
+  {id:"weapons",   emoji:"🔫",label:"Weapons Cache",     bg:"rgba(200,60,60,.88)",   border:"#c83c3c",glow:"rgba(200,60,60,.7)",  cat:"hazard"},
+  {id:"unknown",   emoji:"❓",label:"Unknown",            bg:"rgba(140,140,140,.8)",  border:"#aaa",   glow:"rgba(140,140,140,.5)",cat:"custom"},
+];
+
+// ────────────────── WORLD SEED DATA ──────────────────
+const WORLD_RESOURCES = [
+  // FOOD (10)
+  {type:"food",lat:39.9, lng:116.4, name:"Beijing Grain Depot"},
+  {type:"food",lat:28.6, lng:77.2,  name:"New Delhi Food Reserve"},
+  {type:"food",lat:-23.5,lng:-46.6, name:"São Paulo Food Hub"},
+  {type:"food",lat:41.9, lng:12.5,  name:"Rome Agri-Store"},
+  {type:"food",lat:43.7, lng:-79.4, name:"Toronto Supply Depot"},
+  {type:"food",lat:31.2, lng:121.5, name:"Shanghai Food Cache"},
+  {type:"food",lat:-33.9,lng:151.2, name:"Sydney Food Vault"},
+  {type:"food",lat:52.5, lng:13.4,  name:"Berlin Grain Reserve"},
+  {type:"food",lat:6.5,  lng:3.4,   name:"Lagos Food Depot"},
+  {type:"food",lat:-34.6,lng:-58.4, name:"Buenos Aires Storage"},
+  // WATER (9)
+  {type:"water",lat:30.0, lng:31.2,  name:"Nile River Station"},
+  {type:"water",lat:-3.7, lng:-73.2, name:"Amazon Basin Pump"},
+  {type:"water",lat:61.0, lng:28.0,  name:"Lake Saimaa Reserve"},
+  {type:"water",lat:47.6, lng:-122.3,name:"Seattle Reservoir"},
+  {type:"water",lat:1.3,  lng:103.8, name:"Singapore Desalination"},
+  {type:"water",lat:-6.8, lng:39.3,  name:"Dar es Salaam Tank"},
+  {type:"water",lat:45.5, lng:-73.6, name:"Montreal Water Plant"},
+  {type:"water",lat:64.1, lng:-21.9, name:"Reykjavik Geothermal"},
+  {type:"water",lat:-17.7,lng:31.0,  name:"Harare Reservoir"},
+  // MEDICAL (9)
+  {type:"medical",lat:51.5, lng:-0.1,  name:"London Trauma Center"},
+  {type:"medical",lat:40.7, lng:-74.0, name:"NYC Emergency Hospital"},
+  {type:"medical",lat:35.7, lng:139.7, name:"Tokyo Medical Hub"},
+  {type:"medical",lat:48.8, lng:2.35,  name:"Paris Field Hospital"},
+  {type:"medical",lat:-33.9,lng:18.4,  name:"Cape Town Medical"},
+  {type:"medical",lat:19.4, lng:-99.1, name:"Mexico City Clinic"},
+  {type:"medical",lat:1.3,  lng:103.8, name:"Singapore General"},
+  {type:"medical",lat:55.7, lng:37.6,  name:"Moscow Medical Center"},
+  {type:"medical",lat:-26.2,lng:28.0,  name:"Johannesburg Hospital"},
+  // SHELTER (8)
+  {type:"shelter",lat:46.8, lng:8.2,    name:"Swiss Alpine Bunker"},
+  {type:"shelter",lat:64.1, lng:-21.9,  name:"Reykjavik Underground"},
+  {type:"shelter",lat:39.0, lng:-105.0, name:"Colorado Vault"},
+  {type:"shelter",lat:-43.5,lng:172.6,  name:"Christchurch Shelter"},
+  {type:"shelter",lat:55.7, lng:37.6,   name:"Moscow Metro Bunker"},
+  {type:"shelter",lat:37.6, lng:127.0,  name:"Seoul Underground"},
+  {type:"shelter",lat:32.1, lng:34.8,   name:"Tel Aviv Shelter"},
+  {type:"shelter",lat:-25.7,lng:28.2,   name:"Pretoria Safe Room"},
+  // MEDICINE (6)
+  {type:"medicine",lat:40.7, lng:-74.0, name:"New York Pharma Cache"},
+  {type:"medicine",lat:51.5, lng:-0.1,  name:"London Drug Stockpile"},
+  {type:"medicine",lat:35.7, lng:139.7, name:"Tokyo Pharma Vault"},
+  {type:"medicine",lat:48.8, lng:2.35,  name:"Paris Antiviral Reserve"},
+  {type:"medicine",lat:28.6, lng:77.2,  name:"Delhi Vaccine Store"},
+  {type:"medicine",lat:-23.5,lng:-46.6, name:"São Paulo Meds Cache"},
+  // POWER (8)
+  {type:"power",lat:36.5, lng:127.5,  name:"South Korea Grid Hub"},
+  {type:"power",lat:45.4, lng:9.2,    name:"Milan Power Station"},
+  {type:"power",lat:34.0, lng:-118.2, name:"LA Energy Grid"},
+  {type:"power",lat:22.5, lng:88.4,   name:"Kolkata Power Plant"},
+  {type:"power",lat:-26.2,lng:28.0,   name:"Johannesburg Grid"},
+  {type:"power",lat:60.0, lng:10.7,   name:"Oslo Hydro Plant"},
+  {type:"power",lat:55.8, lng:37.6,   name:"Moscow Power Grid"},
+  {type:"power",lat:-33.9,lng:151.2,  name:"Sydney Energy Hub"},
+  // FUEL (7)
+  {type:"fuel",lat:26.3, lng:50.2,  name:"Persian Gulf Refinery"},
+  {type:"fuel",lat:61.5, lng:60.7,  name:"Ural Fuel Depot"},
+  {type:"fuel",lat:29.7, lng:-95.4, name:"Houston Petroleum Hub"},
+  {type:"fuel",lat:-8.8, lng:13.2,  name:"Luanda Oil Terminal"},
+  {type:"fuel",lat:59.9, lng:10.7,  name:"Oslo Gas Reserve"},
+  {type:"fuel",lat:1.35, lng:103.8, name:"Singapore Fuel Port"},
+  {type:"fuel",lat:51.5, lng:0.1,   name:"London Fuel Depot"},
+  // COMMS (7)
+  {type:"comms",lat:40.7, lng:-74.0,  name:"New York Relay Tower"},
+  {type:"comms",lat:51.5, lng:-0.1,   name:"London Comms Hub"},
+  {type:"comms",lat:35.7, lng:139.7,  name:"Tokyo Signal Station"},
+  {type:"comms",lat:-33.9,lng:151.2,  name:"Sydney Satellite Link"},
+  {type:"comms",lat:19.4, lng:-99.1,  name:"Mexico City Tower"},
+  {type:"comms",lat:28.6, lng:77.2,   name:"New Delhi Relay"},
+  {type:"comms",lat:55.7, lng:37.6,   name:"Moscow Comms Center"},
+  // TRANSPORT (7)
+  {type:"transport",lat:51.47,lng:-0.46,  name:"Heathrow Evac Hub"},
+  {type:"transport",lat:40.64,lng:-73.78, name:"JFK Airlift Point"},
+  {type:"transport",lat:35.55,lng:139.78, name:"Tokyo Haneda Ops"},
+  {type:"transport",lat:1.36, lng:103.99, name:"Changi Evac Airport"},
+  {type:"transport",lat:25.25,lng:55.36,  name:"Dubai Air Bridge"},
+  {type:"transport",lat:48.11,lng:16.57,  name:"Vienna Evac Base"},
+  {type:"transport",lat:-33.94,lng:151.18,name:"Sydney Kingsford Hub"},
+  // MILITARY (7)
+  {type:"military",lat:38.9, lng:-77.0,  name:"Pentagon Command"},
+  {type:"military",lat:55.8, lng:37.6,   name:"Moscow Arsenal"},
+  {type:"military",lat:39.9, lng:116.4,  name:"Beijing Command"},
+  {type:"military",lat:51.5, lng:-0.1,   name:"London MoD Base"},
+  {type:"military",lat:35.7, lng:139.7,  name:"Tokyo JSDF HQ"},
+  {type:"military",lat:-33.9,lng:151.2,  name:"Sydney RAAF Base"},
+  {type:"military",lat:28.6, lng:77.2,   name:"Delhi Defence HQ"},
+  // DANGER (8)
+  {type:"danger",lat:37.4, lng:141.0,  name:"Fukushima Exclusion Zone"},
+  {type:"danger",lat:51.4, lng:30.1,   name:"Chernobyl Zone"},
+  {type:"danger",lat:36.6, lng:36.2,   name:"North Syria Conflict Zone"},
+  {type:"danger",lat:15.6, lng:32.5,   name:"Khartoum Ground Zero"},
+  {type:"danger",lat:3.0,  lng:42.0,   name:"Somalia Collapse Region"},
+  {type:"danger",lat:33.5, lng:36.3,   name:"Damascus Hot Zone"},
+  {type:"danger",lat:31.5, lng:34.5,   name:"Gaza Exclusion Zone"},
+  {type:"danger",lat:-1.3, lng:36.8,   name:"Nairobi Outbreak Zone"},
+  // RADIATION (4)
+  {type:"radiation",lat:37.4,lng:141.0, name:"Fukushima Radiation Plume"},
+  {type:"radiation",lat:51.4,lng:30.1,  name:"Chernobyl Fallout Zone"},
+  {type:"radiation",lat:49.6,lng:35.3,  name:"Ukraine Fallout Region"},
+  {type:"radiation",lat:22.0,lng:38.0,  name:"Red Sea Drift Zone"},
+  // BIOHAZARD (5)
+  {type:"biohazard",lat:30.6,lng:114.3,  name:"Wuhan Quarantine Zone"},
+  {type:"biohazard",lat:8.5, lng:-11.8,  name:"West Africa Ebola Region"},
+  {type:"biohazard",lat:0.3, lng:32.6,   name:"Uganda Viral Zone"},
+  {type:"biohazard",lat:15.6,lng:32.5,   name:"Sudan Pathogen Site"},
+  {type:"biohazard",lat:23.1,lng:113.3,  name:"Guangzhou Outbreak Zone"},
+  // SAFE (7)
+  {type:"safe",lat:64.1, lng:-21.9, name:"Iceland Safe Zone"},
+  {type:"safe",lat:-54.8,lng:-68.3, name:"Patagonia Refuge"},
+  {type:"safe",lat:46.8, lng:8.2,   name:"Switzerland Safe Area"},
+  {type:"safe",lat:-43.5,lng:172.6, name:"New Zealand Safe Zone"},
+  {type:"safe",lat:59.3, lng:18.1,  name:"Stockholm Enclave"},
+  {type:"safe",lat:63.4, lng:10.4,  name:"Trondheim Safe Haven"},
+  {type:"safe",lat:-41.3,lng:174.8, name:"Wellington Refuge"},
+  // WEAPONS (5)
+  {type:"weapons",lat:38.9,lng:-77.0,  name:"Pentagon Armory"},
+  {type:"weapons",lat:55.8,lng:37.6,   name:"Moscow Arsenal Depot"},
+  {type:"weapons",lat:51.5,lng:-0.1,   name:"London Vault"},
+  {type:"weapons",lat:35.7,lng:139.7,  name:"Tokyo JSDF Depot"},
+  {type:"weapons",lat:28.6,lng:77.2,   name:"Delhi Armoury"},
+];
+
+// ────────────────── STATE ──────────────────
+let pressCount   = 0;
+let map          = null;
+let activeType   = "food";
+let totalPlaced  = 0;
+const layerGroups  = {};
+const counts       = {};
+const hiddenLayers = new Set();
+TYPES.forEach(t => { counts[t.id] = 0; });
+
+const messages = [
+  "Panic signal armed.",
+  "Apoclypse protocol handshake started.",
+  "Reality integrity check in progress...",
+  "Multiverse notified. Please stand by.",
+  "Apoclypse averted. For now."
+];
+
+// ────────────────── NAVIGATION ──────────────────
+function showPage(p) {
+  [page1,page2,page3].forEach(x=>x.classList.remove("page--active"));
+  p.classList.add("page--active");
+}
+
+function launchMap(name) {
+  mapScenarioTitle.textContent = name;
+  showPage(page3);
+  initMap();
+}
+
+// ────────────────── MAP INIT ──────────────────
+function initMap() {
+  if (map) { setTimeout(()=>map.invalidateSize(),80); return; }
+
+  map = L.map("map",{center:[20,10],zoom:2,zoomControl:true,preferCanvas:true});
+
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    subdomains:"abcd",maxZoom:19
+  }).addTo(map);
+
+  TYPES.forEach(t=>{ layerGroups[t.id]=L.layerGroup().addTo(map); });
+  WORLD_RESOURCES.forEach(r=>placeMarker(r.type,{lat:r.lat,lng:r.lng},r.name,false));
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos=>{
+      const {latitude:lat,longitude:lng}=pos.coords;
+      const yi=L.divIcon({className:"",html:'<div class="you-are-here"></div>',iconSize:[16,16],iconAnchor:[8,8]});
+      L.marker([lat,lng],{icon:yi,zIndexOffset:3000}).addTo(map)
+        .bindPopup('<div style="color:#4af;font-size:.82rem;font-weight:700;letter-spacing:.1em;text-align:center;padding:4px 8px;">📍 YOU ARE HERE</div>');
+      map.setView([lat,lng],5,{animate:true});
+    },()=>{});
+  }
+
+  map.on("click",e=>placeMarker(activeType,e.latlng,null,true));
+  buildPicker();
+}
+
+// ────────────────── PLACE MARKER ──────────────────
+function placeMarker(typeId,latlng,nameOverride,openPopup){
+  const t=TYPES.find(x=>x.id===typeId)||TYPES[TYPES.length-1];
+  counts[t.id]++; totalPlaced++; updateCounts();
+  const defaultName=nameOverride||(t.label+" #"+counts[t.id]);
+
+  const icon=L.divIcon({
+    className:"",
+    html:`<div class="res-marker" style="width:28px;height:28px;background:${t.bg};border-color:${t.border};box-shadow:0 0 14px ${t.glow},0 2px 6px rgba(0,0,0,.8);">${t.emoji}</div>`,
+    iconSize:[28,28],iconAnchor:[14,14]
+  });
+
+  const marker=L.marker([latlng.lat,latlng.lng],{icon}).addTo(layerGroups[t.id]);
+  marker._typeId=typeId; marker._name=defaultName; marker._note="";
+  marker.bindPopup(buildPopup(t,defaultName,""),{minWidth:220});
+  if(openPopup) marker.openPopup();
+
+  marker.on("popupopen",()=>{
+    const el=document.querySelector(".leaflet-popup-content .popup-inner");
+    if(!el) return;
+    const inp=el.querySelector(".popup-name-input");
+    const note=el.querySelector(".popup-note-input");
+    el.querySelector(".popup-save-btn").addEventListener("click",()=>{
+      const n=inp.value.trim()||defaultName;
+      const nt=note.value.trim();
+      marker._name=n; marker._note=nt;
+      marker.setPopupContent(buildPopup(t,n,nt)); marker.closePopup();
+    });
+    el.querySelector(".popup-delete-btn").addEventListener("click",()=>{
+      layerGroups[t.id].removeLayer(marker);
+      counts[t.id]=Math.max(0,counts[t.id]-1);
+      totalPlaced=Math.max(0,totalPlaced-1); updateCounts();
+    });
+  });
+}
+
+function buildPopup(t,name,note){
+  return `<div class="popup-inner">
+    <div class="popup-header">
+      <div class="popup-icon-big">${t.emoji}</div>
+      <div class="popup-title-col">
+        <div class="popup-type-label">${t.label}</div>
+        <div class="popup-name-display">${name}</div>
+      </div>
+    </div>
+    <input class="popup-name-input" type="text" value="${name.replace(/"/g,'&quot;')}" placeholder="Location name…"/>
+    <textarea class="popup-note-input" rows="2" placeholder="Status, supplies, intel…">${note}</textarea>
+    <div class="popup-btn-row">
+      <button class="popup-save-btn">💾 Save</button>
+      <button class="popup-delete-btn">✕ Remove</button>
+    </div>
+  </div>`;
+}
+
+// ────────────────── PICKER ──────────────────
+function buildPicker(){
+  let lastCat=null;
+  TYPES.forEach(t=>{
+    if(t.cat!==lastCat&&lastCat!==null){
+      const sep=document.createElement("div"); sep.className="mtp-sep"; pickerEl.appendChild(sep);
+    }
+    lastCat=t.cat;
+    const btn=document.createElement("div");
+    btn.className="mtp-btn"+(t.id===activeType?" active":"");
+    btn.dataset.id=t.id;
+    btn.innerHTML=`${t.emoji}<span class="mtp-tip">${t.label}</span>`;
+    btn.addEventListener("click",()=>{
+      activeType=t.id;
+      pickerEl.querySelectorAll(".mtp-btn").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+    pickerEl.appendChild(btn);
+  });
+}
+
+// ────────────────── COUNTS ──────────────────
+function updateCounts(){
+  markerCountDisplay.textContent=totalPlaced;
+  statTotal.textContent=totalPlaced;
+  TYPES.forEach(t=>{
+    const el=document.getElementById("cnt-"+t.id);
+    if(!el) return;
+    el.textContent=counts[t.id]>0?counts[t.id]:"";
+    el.classList.toggle("has",counts[t.id]>0);
+  });
+}
+
+// ────────────────── EVENTS ──────────────────
+panicBtn.addEventListener("click",()=>{
+  pressCount++;
+  logEl.innerHTML="<strong>"+messages[(pressCount-1)%messages.length]+"</strong>";
+  document.body.animate(
+    [{transform:"translate(0,0)"},{transform:"translate(-2px,1px)"},{transform:"translate(3px,-1px)"},{transform:"translate(0,0)"}],
+    {duration:120,iterations:1}
+  );
+  if(pressCount===1) setTimeout(()=>showPage(page2),350);
+});
+
+btnZombie.addEventListener("click",  ()=>launchMap("🧟 Zombie Outbreak"));
+btnDisease.addEventListener("click", ()=>launchMap("☣️ Disease Outbreak"));
+btnNuclear.addEventListener("click", ()=>launchMap("☢️ Nuclear Outbreak"));
+btnBackToScenarios.addEventListener("click",()=>showPage(page2));
+
+btnToggleLegend.addEventListener("click",()=>{
+  legendEl.classList.remove("collapsed");
+  btnToggleLegend.classList.add("open");
+});
+btnCloseLegend.addEventListener("click",()=>{
+  legendEl.classList.add("collapsed");
+  btnToggleLegend.classList.remove("open");
+});
+
+legendEl.querySelectorAll(".legend-row[data-layer]").forEach(row=>{
+  row.addEventListener("click",()=>{
+    const id=row.dataset.layer;
+    if(!layerGroups[id]||!map) return;
+    if(hiddenLayers.has(id)){
+      hiddenLayers.delete(id); layerGroups[id].addTo(map); row.classList.remove("dimmed");
+    } else {
+      hiddenLayers.add(id); map.removeLayer(layerGroups[id]); row.classList.add("dimmed");
+    }
+  });
+});
+</script>
+</body>
+</html>

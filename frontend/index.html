@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Apoclypse Panic Button</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background:
+          radial-gradient(circle at top, rgba(0, 0, 0, 0.4), #000),
+          url("../Gemini_Generated_Image_adb39cadb39cadb3.png") center center /
+            cover no-repeat fixed;
+        background-blend-mode: multiply;
+        color: #f5f5f5;
+        overflow: hidden;
+      }
+
+      .container {
+        position: relative;
+        padding: 24px;
+        border-radius: 24px;
+        background: rgba(0, 0, 0, 0.35);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.7);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+      }
+
+      .content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: 20px;
+      }
+
+      .title {
+        font-size: clamp(2rem, 2.4vw, 2.6rem);
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .subtitle {
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: #ff4b6e;
+      }
+
+      .hint {
+        font-size: 0.9rem;
+        color: rgba(245, 245, 245, 0.8);
+        max-width: 260px;
+      }
+
+      .panic-button-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 8px;
+      }
+
+      .glow {
+        position: absolute;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #ff1f5a55, transparent 70%);
+        filter: blur(6px);
+        opacity: 0.9;
+        animation: pulse 2.4s ease-in-out infinite;
+      }
+
+      .panic-button {
+        position: relative;
+        z-index: 1;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        background: radial-gradient(circle at 30% 20%, #ff9a9e, #ff1f5a);
+        box-shadow:
+          0 18px 40px rgba(0, 0, 0, 0.75),
+          0 0 0 4px rgba(255, 255, 255, 0.08),
+          0 0 40px rgba(255, 46, 99, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 0.9rem;
+        font-weight: 800;
+        transition:
+          transform 0.12s ease-out,
+          box-shadow 0.12s ease-out,
+          filter 0.12s ease-out;
+      }
+
+      .panic-button span {
+        pointer-events: none;
+      }
+
+      .panic-button:active {
+        transform: translateY(2px) scale(0.97);
+        box-shadow:
+          0 10px 24px rgba(0, 0, 0, 0.85),
+          0 0 0 2px rgba(255, 255, 255, 0.06),
+          0 0 24px rgba(255, 46, 99, 0.7);
+        filter: brightness(0.92);
+      }
+
+      .log {
+        margin-top: 10px;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.7);
+        min-height: 1.2em;
+      }
+
+      .log strong {
+        color: #ff869a;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(0.9);
+          opacity: 0.5;
+        }
+        50% {
+          transform: scale(1.05);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(0.9);
+          opacity: 0.5;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          width: 100%;
+          margin: 0 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="content">
+        <div class="subtitle">Emergency override</div>
+        <div class="title">Apoclypse</div>
+        <p class="hint">Press only in case of cosmic-level catastrophe.</p>
+
+        <div class="panic-button-wrap">
+          <div class="glow"></div>
+          <button id="panicBtn" class="panic-button">
+            <span>Apoclypse</span>
+          </button>
+        </div>
+        <div id="log" class="log"></div>
+      </div>
+    </div>
+
+    <script>
+      const panicBtn = document.getElementById("panicBtn");
+      const logEl = document.getElementById("log");
+
+      let pressCount = 0;
+
+      const frontendMessages = [
+        "Panic signal armed.",
+        "Apoclypse protocol handshake started.",
+        "Reality integrity check in progress...",
+        "Multiverse notified. Please stand by.",
+        "Apoclypse averted. For now."
+      ];
+
+      async function callBackend() {
+        try {
+          const res = await fetch("http://localhost:4000/panic", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason: "user_pressed_button" })
+          });
+
+          if (!res.ok) throw new Error("Network response was not ok");
+
+          const data = await res.json();
+          return data;
+        } catch (err) {
+          console.error(err);
+          return null;
+        }
+      }
+
+      panicBtn.addEventListener("click", async () => {
+        pressCount++;
+
+        const localMsg =
+          frontendMessages[(pressCount - 1) % frontendMessages.length] ||
+          "Apoclypse button engaged.";
+
+        logEl.innerHTML = "<strong>" + localMsg + "</strong>";
+
+        // subtle vibration effect
+        document.body.animate(
+          [
+            { transform: "translate(0, 0)" },
+            { transform: "translate(-2px, 1px)" },
+            { transform: "translate(3px, -1px)" },
+            { transform: "translate(0, 0)" }
+          ],
+          {
+            duration: 120,
+            iterations: 1
+          }
+        );
+
+        const backendData = await callBackend();
+        if (backendData && backendData.status === "ok") {
+          logEl.innerHTML +=
+            "<br />Backend: " +
+            backendData.message +
+            " (count: " +
+            backendData.panicCount +
+            ")";
+        } else {
+          logEl.innerHTML +=
+            "<br /><span style='color:#ffb3c1'>Backend offline. Local-only panic.</span>";
+        }
+      });
+    </script>
+  </body>
+  </html>
+

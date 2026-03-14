@@ -1,0 +1,245 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background:
+    radial-gradient(circle at top, rgba(0, 0, 0, 0.4), #000),
+    url("Gemini_Generated_Image_adb39cadb39cadb3.png") center center / cover
+      no-repeat fixed;
+  background-blend-mode: multiply;
+  color: #f5f5f5;
+  overflow: hidden;
+}
+
+.app {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+}
+
+.page {
+  position: absolute;
+  inset: auto;
+  padding: 44px;
+  border-radius: 28px;
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  max-width: 1100px;
+  width: min(1100px, 92vw);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px);
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
+}
+
+.page--active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.page__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 20px;
+}
+
+.title {
+  font-size: clamp(2rem, 2.4vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: #ff4b6e;
+}
+
+.hint {
+  font-size: 0.9rem;
+  color: rgba(245, 245, 245, 0.8);
+  max-width: 260px;
+}
+
+.panic-button-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.glow {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ff1f5a55, transparent 70%);
+  filter: blur(6px);
+  opacity: 0.9;
+  animation: pulse 2.4s ease-in-out infinite;
+}
+
+.panic-button {
+  position: relative;
+  z-index: 1;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  background: radial-gradient(
+    circle at 30% 20%,
+    rgba(255, 255, 255, 0.18),
+    #ff1f5a
+  );
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.85),
+    0 0 0 4px rgba(255, 255, 255, 0.08),
+    0 0 40px rgba(255, 46, 99, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.9rem;
+  font-weight: 800;
+  transition:
+    transform 0.12s ease-out,
+    box-shadow 0.12s ease-out,
+    filter 0.12s ease-out;
+}
+
+.panic-button span {
+  pointer-events: none;
+}
+
+.panic-button:active {
+  transform: translateY(2px) scale(0.97);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.85),
+    0 0 0 2px rgba(255, 255, 255, 0.06),
+    0 0 24px rgba(255, 46, 99, 0.7);
+  filter: brightness(0.92);
+}
+
+.log {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  min-height: 1.2em;
+}
+
+.log strong {
+  color: #ff869a;
+}
+
+.scenario-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.scenario-button {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+  transition:
+    background 0.18s ease,
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.scenario-button:hover {
+  background: rgba(255, 75, 110, 0.35);
+  box-shadow: 0 0 28px rgba(255, 75, 110, 0.5);
+  transform: translateY(-1px);
+}
+
+.scenario-button:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 0 16px rgba(255, 75, 110, 0.4);
+}
+
+.scenario-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.scenario-image {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7);
+  object-fit: cover;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 768px) {
+  .app {
+    padding: 16px;
+  }
+
+  .page {
+    padding: 26px;
+    width: min(92vw, 680px);
+  }
+
+  .scenario-buttons {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
